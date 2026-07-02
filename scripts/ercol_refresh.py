@@ -57,7 +57,14 @@ def count_ercol(raw_bytes):
 
     log(f"Feed rows: {len(rows):,}")
 
-    # Find the brand field (may be 'brand' or embedded in category)
+    if rows:
+        log(f"Feed fields: {list(rows[0].keys())[:10]}")
+        # Print a sample title so we can see the format
+        sample = rows[0]
+        log(f"Sample title: {sample.get('title','')[:60]}")
+        log(f"Sample brand: {sample.get('brand','(no brand field)')}")
+
+    # Find the brand field
     brand_field = 'brand' if rows and 'brand' in rows[0] else None
     item_group_field = next((f for f in (rows[0] if rows else {}) if 'item_group' in f), None)
     id_field = 'id' if rows and 'id' in rows[0] else 'link'
@@ -66,7 +73,12 @@ def count_ercol(raw_bytes):
     for row in rows:
         brand_val = row.get(brand_field or '', '').lower()
         title_val = row.get('title', '').lower()
-        if ERCOL_BRAND in brand_val or title_val.startswith('ercol'):
+        desc_val  = row.get('description', '').lower()
+        link_val  = row.get('link', '').lower()
+        # Match on brand field, title starts with ercol, or URL contains /ercol
+        if (ERCOL_BRAND in brand_val or
+            title_val.startswith('ercol') or
+            'ercol' in link_val):
             ercol_rows.append(row)
 
     log(f"Ercol rows in feed: {len(ercol_rows):,}")
@@ -122,9 +134,12 @@ def main():
     history = load_history()
     today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
 
-    if already_snapped_today(history):
-        log(f"Already have a snapshot for {today} — skipping feed download.")
+    if already_snapped_today(history) and any(s['date']==today and s.get('products',0)>0 for s in history.get('snapshots',[])):
+        log(f"Already have a valid snapshot for {today} — skipping feed download.")
         log("To force a re-snap, delete today's entry from data/ercol_product_history.json")
+    else:
+        # Remove any zero-count snapshot for today before re-running
+        history['snapshots'] = [s for s in history.get('snapshots',[]) if s['date'] != today]
     else:
         # 2. Download feed + count
         raw = download_feed()
