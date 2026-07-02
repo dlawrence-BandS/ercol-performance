@@ -46,58 +46,35 @@ def count_ercol(raw_bytes):
     if not lines:
         raise ValueError("Feed is empty")
 
-    # Skip comment/metadata lines at the top (lines starting with # or blank)
-    # Find the actual header row — the first line containing known feed field names
-    KNOWN_FIELDS = {'id','title','description','link','image_link','brand','price',
-                    'availability','condition','google_product_category','item_group_id','mpn'}
-    header_idx = 0
+    # Feed format: 2 comment lines (# ref_application_id, # ref_asset_id)
+    # then tab-separated header, then data rows
+    # Skip any lines starting with #
+    data_start = 0
     for i, line in enumerate(lines):
-        fields_tab   = [f.strip().lower() for f in line.split('\t')]
-        fields_comma = [f.strip().lower() for f in line.split(',')]
-        if len([f for f in fields_tab   if f in KNOWN_FIELDS]) >= 3:
-            header_idx = i
-            break
-        if len([f for f in fields_comma if f in KNOWN_FIELDS]) >= 3:
-            header_idx = i
+        if not line.startswith('#'):
+            data_start = i
             break
 
-    log(f"Header row found at line {header_idx}: {lines[header_idx][:80]}")
+    log(f"Skipped {data_start} comment line(s). Header: {lines[data_start][:80]}")
+    clean_text = '\n'.join(lines[data_start:])
 
-    # Parse from the header row onwards
-    clean_text = '\n'.join(lines[header_idx:])
-    delim = detect_delimiter(lines[header_idx])
-    reader = csv.DictReader(io.StringIO(clean_text), delimiter=delim)
+    reader = csv.DictReader(io.StringIO(clean_text), delimiter='\t')
 
-    # Normalise field names
     rows = []
     for row in reader:
         normed = {k.strip().lower(): v.strip() for k, v in row.items() if k}
         rows.append(normed)
 
     log(f"Feed rows: {len(rows):,}")
-
     if rows:
-        log(f"Feed fields: {list(rows[0].keys())[:10]}")
-        sample = rows[0]
-        log(f"Sample title: {sample.get('title','')[:60]}")
-        log(f"Sample brand: {sample.get('brand','(no brand field)')}")
-        log(f"Sample link:  {sample.get('link','')[:60]}")
+        log(f"Feed fields: {list(rows[0].keys())[:8]}")
+        log(f"Sample brand: {rows[0].get('brand','(none)')}")
+        log(f"Sample title: {rows[0].get('title','')[:50]}")
 
-    # Find the brand field
-    brand_field = 'brand' if rows and 'brand' in rows[0] else None
     item_group_field = next((f for f in (rows[0] if rows else {}) if 'item_group' in f), None)
-    id_field = 'id' if rows and 'id' in rows[0] else 'link'
+    id_field = 'id' if rows and 'id' in rows[0] else 'mpn'
 
-    ercol_rows = []
-    for row in rows:
-        brand_val = row.get(brand_field or '', '').lower()
-        title_val = row.get('title', '').lower()
-        link_val  = row.get('link', '').lower()
-        if (ERCOL_BRAND in brand_val or
-            title_val.startswith('ercol') or
-            'ercol' in link_val):
-            ercol_rows.append(row)
-
+    ercol_rows = [r for r in rows if r.get('brand','').lower() == 'ercol']
     log(f"Ercol rows in feed: {len(ercol_rows):,}")
 
     # Unique parent products (by item_group_id if present, else unique IDs)
