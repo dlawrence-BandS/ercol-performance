@@ -1,0 +1,12 @@
+{
+  "description": "Ercol product count snapshots over time. Appended by refresh_data.bat each run.",
+  "note": "Each entry is a point-in-time snapshot from the Feedonomics Facebook feed.",
+  "snapshots": [
+    {
+      "date": "2026-03-01",
+      "products": 0,
+      "variants": 0,
+      "note": "Baseline — before product expansion work began"
+    }
+  ]
+}
