@@ -140,7 +140,7 @@ def main():
     else:
         # Remove any zero-count snapshot for today before re-running
         history['snapshots'] = [s for s in history.get('snapshots',[]) if s['date'] != today]
-    else:
+
         # 2. Download feed + count
         raw = download_feed()
         products, variants = count_ercol(raw)
@@ -152,7 +152,6 @@ def main():
             "variants": variants,
         }
         history.setdefault('snapshots', []).append(snapshot)
-        # Keep sorted by date
         history['snapshots'].sort(key=lambda s: s['date'])
         save_history(history)
         log(f"✓ Snapshot recorded: {products} products / {variants} variants on {today}")
