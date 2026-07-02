@@ -46,8 +46,27 @@ def count_ercol(raw_bytes):
     if not lines:
         raise ValueError("Feed is empty")
 
-    delim = detect_delimiter(lines[0])
-    reader = csv.DictReader(io.StringIO(text), delimiter=delim)
+    # Skip comment/metadata lines at the top (lines starting with # or blank)
+    # Find the actual header row — the first line containing known feed field names
+    KNOWN_FIELDS = {'id','title','description','link','image_link','brand','price',
+                    'availability','condition','google_product_category','item_group_id','mpn'}
+    header_idx = 0
+    for i, line in enumerate(lines):
+        fields_tab   = [f.strip().lower() for f in line.split('\t')]
+        fields_comma = [f.strip().lower() for f in line.split(',')]
+        if len([f for f in fields_tab   if f in KNOWN_FIELDS]) >= 3:
+            header_idx = i
+            break
+        if len([f for f in fields_comma if f in KNOWN_FIELDS]) >= 3:
+            header_idx = i
+            break
+
+    log(f"Header row found at line {header_idx}: {lines[header_idx][:80]}")
+
+    # Parse from the header row onwards
+    clean_text = '\n'.join(lines[header_idx:])
+    delim = detect_delimiter(lines[header_idx])
+    reader = csv.DictReader(io.StringIO(clean_text), delimiter=delim)
 
     # Normalise field names
     rows = []
@@ -59,10 +78,10 @@ def count_ercol(raw_bytes):
 
     if rows:
         log(f"Feed fields: {list(rows[0].keys())[:10]}")
-        # Print a sample title so we can see the format
         sample = rows[0]
         log(f"Sample title: {sample.get('title','')[:60]}")
         log(f"Sample brand: {sample.get('brand','(no brand field)')}")
+        log(f"Sample link:  {sample.get('link','')[:60]}")
 
     # Find the brand field
     brand_field = 'brand' if rows and 'brand' in rows[0] else None
@@ -73,9 +92,7 @@ def count_ercol(raw_bytes):
     for row in rows:
         brand_val = row.get(brand_field or '', '').lower()
         title_val = row.get('title', '').lower()
-        desc_val  = row.get('description', '').lower()
         link_val  = row.get('link', '').lower()
-        # Match on brand field, title starts with ercol, or URL contains /ercol
         if (ERCOL_BRAND in brand_val or
             title_val.startswith('ercol') or
             'ercol' in link_val):
