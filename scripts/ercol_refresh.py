@@ -46,36 +46,33 @@ def count_ercol(raw_bytes):
     if not lines:
         raise ValueError("Feed is empty")
 
-    # Feed format: 2 comment lines (# ref_application_id, # ref_asset_id)
-    # then tab-separated header, then data rows
-    # Skip any lines starting with #
-    data_start = 0
-    for i, line in enumerate(lines):
-        if not line.startswith('#'):
-            data_start = i
-            break
-
-    log(f"Skipped {data_start} comment line(s). Header: {lines[data_start][:80]}")
+    # Skip leading comment lines (start with #)
+    data_start = next((i for i,l in enumerate(lines) if not l.startswith('#')), 0)
+    log(f"Skipped {data_start} comment line(s). Parsing from line {data_start}.")
     clean_text = '\n'.join(lines[data_start:])
 
-    reader = csv.DictReader(io.StringIO(clean_text), delimiter='\t')
-
+    # Feed is comma-separated with quoted fields
+    reader = csv.DictReader(io.StringIO(clean_text), delimiter=',')
     rows = []
     for row in reader:
-        normed = {k.strip().lower(): v.strip() for k, v in row.items() if k}
+        normed = {k.strip().strip('"').lower(): v.strip().strip('"') for k, v in row.items() if k}
         rows.append(normed)
 
     log(f"Feed rows: {len(rows):,}")
     if rows:
-        log(f"Feed fields: {list(rows[0].keys())[:8]}")
-        log(f"Sample brand: {rows[0].get('brand','(none)')}")
-        log(f"Sample title: {rows[0].get('title','')[:50]}")
+        log(f"Sample brand: '{rows[0].get('brand','')}'")
+        log(f"Sample title: '{rows[0].get('title','')[:50]}'")
 
-    item_group_field = next((f for f in (rows[0] if rows else {}) if 'item_group' in f), None)
-    id_field = 'id' if rows and 'id' in rows[0] else 'mpn'
-
+    # Count Ercol rows
     ercol_rows = [r for r in rows if r.get('brand','').lower() == 'ercol']
     log(f"Ercol rows in feed: {len(ercol_rows):,}")
+
+    # Unique parent products by item_group_id
+    item_group_field = next((f for f in (rows[0] if rows else {}) if 'item_group' in f), None)
+    id_field = item_group_field or 'id'
+    parent_ids = {r.get(id_field,'') for r in ercol_rows if r.get(id_field)}
+    products = len(parent_ids)
+    variants = len(ercol_rows)
 
     # Unique parent products (by item_group_id if present, else unique IDs)
     if item_group_field:
