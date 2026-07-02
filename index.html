@@ -735,7 +735,7 @@ async function runQuery(sql, accessToken) {
       query: sql,
       useLegacySql: false,
       timeoutMs: 30000,
-      location: 'EU',
+      location: 'europe-west2',
     }),
   });
   const data = await resp.json();
