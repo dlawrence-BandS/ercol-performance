@@ -725,27 +725,22 @@ const SQL = {
     GROUP BY 1 ORDER BY sessions DESC LIMIT 20`,
 
   engagement: `
-    SELECT FORMAT_DATE('%Y-%m',PARSE_DATE('%Y%m%d',e.event_date)) AS ym,
-      COUNT(DISTINCT sess) AS sessions,
-      COUNT(DISTINCT CASE WHEN eng>0 THEN sess END) AS engaged,
-      ROUND(AVG(COALESCE(eng,0))/1000,1) AS avg_eng_secs,
-      COUNTIF(is_new='yes') AS new_users
-    FROM (
-      SELECT event_date,
-        CONCAT(user_pseudo_id,CAST((SELECT ep.value.int_value FROM UNNEST(event_params) ep WHERE ep.key='ga_session_id') AS STRING)) AS sess,
-        (SELECT ep.value.int_value FROM UNNEST(event_params) ep WHERE ep.key='engagement_time_msec') AS eng,
-        (SELECT ep.value.string_value FROM UNNEST(event_params) ep WHERE ep.key='new_user') AS is_new
-      FROM \`${BQ_PROJECT}.${BQ_DATASET}.events_*\` e, UNNEST(e.items) i
-      WHERE _TABLE_SUFFIX BETWEEN '20250401' AND FORMAT_DATE('%Y%m%d',CURRENT_DATE())
-        AND LOWER(i.item_brand)='ercol'
-    )
+    SELECT FORMAT_DATE('%Y-%m',PARSE_DATE('%Y%m%d',event_date)) AS ym,
+      COUNT(DISTINCT CONCAT(user_pseudo_id,CAST((SELECT ep.value.int_value FROM UNNEST(event_params) ep WHERE ep.key='ga_session_id') AS STRING))) AS sessions,
+      COUNT(DISTINCT CASE WHEN (SELECT ep.value.int_value FROM UNNEST(event_params) ep WHERE ep.key='engagement_time_msec')>0
+        THEN CONCAT(user_pseudo_id,CAST((SELECT ep.value.int_value FROM UNNEST(event_params) ep WHERE ep.key='ga_session_id') AS STRING)) END) AS engaged,
+      ROUND(AVG(COALESCE((SELECT ep.value.int_value FROM UNNEST(event_params) ep WHERE ep.key='engagement_time_msec'),0))/1000,1) AS avg_eng_secs,
+      COUNTIF(event_name='session_start') AS new_users
+    FROM \`${BQ_PROJECT}.${BQ_DATASET}.events_*\`, UNNEST(items) i
+    WHERE _TABLE_SUFFIX BETWEEN '20250401' AND FORMAT_DATE('%Y%m%d',CURRENT_DATE())
+      AND LOWER(i.item_brand)='ercol'
     GROUP BY 1 ORDER BY 1`,
 
   devices: `
     SELECT device.category AS device,
       COUNT(DISTINCT CONCAT(user_pseudo_id,CAST((SELECT ep.value.int_value FROM UNNEST(event_params) ep WHERE ep.key='ga_session_id') AS STRING))) AS sessions,
-      SUM(CASE WHEN event_name='purchase' THEN COALESCE((SELECT ep.value.double_value FROM UNNEST(event_params) ep WHERE ep.key='value'),0) ELSE 0 END) AS revenue
-    FROM \`${BQ_PROJECT}.${BQ_DATASET}.events_*\` e, UNNEST(e.items) i
+      SUM(CASE WHEN event_name='purchase' THEN COALESCE(i.price*i.quantity,0) ELSE 0 END) AS revenue
+    FROM \`${BQ_PROJECT}.${BQ_DATASET}.events_*\`, UNNEST(items) i
     WHERE _TABLE_SUFFIX BETWEEN FORMAT_DATE('%Y%m%d',DATE_SUB(CURRENT_DATE(),INTERVAL 90 DAY))
       AND FORMAT_DATE('%Y%m%d',CURRENT_DATE())
       AND LOWER(i.item_brand)='ercol'
@@ -1210,7 +1205,8 @@ function renderCatalogue(snapshots){
       plugins:{legend:{display:true,labels:{color:'#555',usePointStyle:true}},tooltip:{...TIP,callbacks:{label:c=>` ${c.dataset.label}: ${c.raw}`}}},
       scales:{yP:{position:'left',...AX()},yV:{position:'right',grid:{drawOnChartArea:false},border:{color:'rgba(0,0,0,0.12)'},ticks:{color:'#777'}},x:{...AX()}}}});
   } else {
-    document.getElementById('productChart').parentElement.innerHTML=`<div style="height:260px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;text-align:center;padding:20px">No product snapshots yet.<br><strong style="color:var(--text);display:block;margin-top:8px">Run refresh_data.bat to record the first snapshot.</strong></div>`;
+    const pc = document.getElementById('productChart');
+    if(pc && pc.parentElement) pc.parentElement.innerHTML=`<div style="height:260px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;text-align:center;padding:20px">No product snapshots yet.<br><strong style="color:var(--text);display:block;margin-top:8px">Run refresh_data.bat to record the first snapshot.</strong></div>`;
   }
 
   // Snapshot table
@@ -1260,20 +1256,24 @@ async function init(){
     renderOverview(monthlyFmt);
 
     setLoading('Querying BigQuery…','Product performance (2/5)');
-    const prods=await bq(SQL.products90,token);
-    renderProducts(prods);
+    try{ const prods=await bq(SQL.products90,token); renderProducts(prods); }
+    catch(e){ console.warn('Products query failed:',e.message); renderProducts([]); }
 
     setLoading('Querying BigQuery…','SEO & organic data (3/5)');
-    const [seoM,landingP]=await Promise.all([bq(SQL.seoMonthly,token),bq(SQL.landingPages,token)]);
-    renderSEO(seoM,landingP);
+    try{
+      const [seoM,landingP]=await Promise.all([bq(SQL.seoMonthly,token),bq(SQL.landingPages,token)]);
+      renderSEO(seoM,landingP);
+    } catch(e){ console.warn('SEO query failed:',e.message); renderSEO([],[]); }
 
     setLoading('Querying BigQuery…','Engagement & devices (4/5)');
-    const [engD,devs]=await Promise.all([bq(SQL.engagement,token),bq(SQL.devices,token)]);
-    renderEngagement(engD,devs);
+    try{
+      const [engD,devs]=await Promise.all([bq(SQL.engagement,token),bq(SQL.devices,token)]);
+      renderEngagement(engD,devs);
+    } catch(e){ console.warn('Engagement query failed:',e.message); renderEngagement([],[]); }
 
     setLoading('Querying BigQuery…','Category & merchandising data (5/5)');
-    const cats=await bq(SQL.categories,token);
-    renderMerchandising(cats);
+    try{ const cats=await bq(SQL.categories,token); renderMerchandising(cats); }
+    catch(e){ console.warn('Categories query failed:',e.message); renderMerchandising([]); }
 
     overlay.style.display='none';
 
