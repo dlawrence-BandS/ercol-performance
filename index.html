@@ -271,6 +271,7 @@ tr:hover td{background:#f3f0ec;}
   <button class="tab active" onclick="showTab('overview')">📊 Overview</button>
   <button class="tab" onclick="showTab('products')">🛍 Product Performance</button>
   <button class="tab" onclick="showTab('seo')">🔍 SEO &amp; Organic</button>
+  <button class="tab" onclick="showTab('searchconsole')">🔎 Search Console</button>
   <button class="tab" onclick="showTab('engagement')">⏱ Engagement</button>
   <button class="tab" onclick="showTab('merchandising')">🏷 Merchandising</button>
   <button class="tab" onclick="showTab('catalogue')">📦 Catalogue Growth</button>
@@ -406,6 +407,89 @@ tr:hover td{background:#f3f0ec;}
   </div>
 
 </div><!-- /seo -->
+
+<!-- ══════════════════════════════════════════════════════ TAB: SEARCH CONSOLE -->
+<div class="tab-panel" id="tab-searchconsole">
+
+  <div class="sec">Search Console — Ercol Keywords <span>commanding-air-450109-p0.searchconsole · web searches only</span></div>
+  <div class="kpi-grid" id="sc-kpis"></div>
+
+  <div class="chart-full">
+    <div class="chart-card">
+      <div class="chart-hdr"><div><div class="chart-ttl">Daily Clicks &amp; Impressions — Ercol Queries</div>
+        <div class="chart-note">All queries containing "ercol" · web search type</div></div></div>
+      <div class="chart-wrap" style="height:240px"><canvas id="scTrendChart"></canvas></div>
+      <div class="phase-ann">
+        <div class="pa"><div class="pal" style="background:var(--onsite)"></div>1 Mar: Onsite optimisation</div>
+        <div class="pa"><div class="pal" style="background:var(--ramp)"></div>25 Mar: Product expansion</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-hdr"><div><div class="chart-ttl">Top Ercol Keywords by Clicks</div>
+        <div class="chart-note">Last 90 days · web search</div></div></div>
+      <div class="chart-wrap" style="height:280px"><canvas id="scTopClicksChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-hdr"><div><div class="chart-ttl">Top Ercol Keywords by Impressions</div>
+        <div class="chart-note">Last 90 days · high impressions = ranking opportunity</div></div></div>
+      <div class="chart-wrap" style="height:280px"><canvas id="scTopImpChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-hdr"><div><div class="chart-ttl">Average Position — Top Ercol Keywords</div>
+        <div class="chart-note">Lower = better · position 1–10 = page one</div></div></div>
+      <div class="chart-wrap" style="height:280px"><canvas id="scPositionChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-hdr"><div><div class="chart-ttl">CTR vs Position — Keyword Scatter</div>
+        <div class="chart-note">High impressions + low CTR = title/meta opportunity</div></div></div>
+      <div class="chart-wrap" style="height:280px"><canvas id="scCTRChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="sec">Top Ercol Pages by Clicks <span>URL-level data · last 90 days</span></div>
+  <div class="chart-full" style="margin-bottom:20px;">
+    <div class="chart-card">
+      <div class="chart-hdr"><div><div class="chart-ttl">Top Ercol URLs by Organic Clicks</div>
+        <div class="chart-note">Pages driving the most Search Console clicks</div></div></div>
+      <div class="chart-wrap" style="height:260px"><canvas id="scUrlChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="sec">Full Keyword Table <span>All Ercol queries · last 90 days</span></div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th style="text-align:left">Query</th>
+        <th>Clicks</th><th>Impressions</th><th>CTR</th><th>Avg Position</th>
+      </tr></thead>
+      <tbody id="sc-keyword-table"></tbody>
+    </table>
+  </div>
+
+  <div class="ins-grid">
+    <div class="ins ig"><div class="ins-icon">🏆</div><div class="ins-ttl">Top Keyword</div><div class="ins-txt" id="ins-sc-top">Loading…</div></div>
+    <div class="ins ia"><div class="ins-icon">⚠️</div><div class="ins-ttl">CTR Opportunities</div><div class="ins-txt" id="ins-sc-ctr">Loading…</div></div>
+    <div class="ins ib"><div class="ins-icon">📈</div><div class="ins-ttl">Position 4–10 Keywords</div><div class="ins-txt" id="ins-sc-pos">Loading…</div></div>
+  </div>
+
+  <div class="sec" style="margin-top:32px;">Keywords Since Product Expansion <span>Queries appearing after 25 Mar 2026</span></div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th style="text-align:left">New Query</th>
+        <th>Clicks</th><th>Impressions</th><th>CTR</th><th>Avg Position</th>
+      </tr></thead>
+      <tbody id="sc-new-keywords-table"></tbody>
+    </table>
+  </div>
+
+</div><!-- /searchconsole -->
 
 <!-- ══════════════════════════════════════════════════════ TAB: ENGAGEMENT -->
 <div class="tab-panel" id="tab-engagement">
@@ -550,7 +634,7 @@ const truncate = (s,n=32) => s&&s.length>n?s.slice(0,n)+'…':s;
 // ══════════════════════════════════════════════════ TABS
 function showTab(id){
   document.querySelectorAll('.tab').forEach((t,i)=>{
-    const ids=['overview','products','seo','engagement','merchandising','catalogue'];
+    const ids=['overview','products','seo','searchconsole','engagement','merchandising','catalogue'];
     t.classList.toggle('active', ids[i]===id);
   });
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
@@ -762,7 +846,74 @@ const SQL = {
     GROUP BY 1 HAVING views>0 ORDER BY revenue DESC`,
 };
 
-// ══════════════════════════════════════════════════ PRODUCT HISTORY
+// ══════════════════════════════════════════════════ SEARCH CONSOLE SQL
+const SC_DATASET = 'commanding-air-450109-p0.searchconsole';
+const SC_SQL = {
+
+  trend: `
+    SELECT data_date,
+      SUM(clicks) AS clicks,
+      SUM(impressions) AS impressions,
+      SAFE_DIVIDE(SUM(clicks),SUM(impressions))*100 AS ctr,
+      SAFE_DIVIDE(SUM(sum_top_position),SUM(impressions))+1 AS avg_position
+    FROM \`${SC_DATASET}.searchdata_site_impression\`
+    WHERE data_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 180 DAY)
+      AND search_type = 'web'
+      AND LOWER(query) LIKE '%ercol%'
+    GROUP BY 1 ORDER BY 1`,
+
+  topKeywords: `
+    SELECT query,
+      SUM(clicks) AS clicks,
+      SUM(impressions) AS impressions,
+      SAFE_DIVIDE(SUM(clicks),SUM(impressions))*100 AS ctr,
+      SAFE_DIVIDE(SUM(sum_top_position),SUM(impressions))+1 AS avg_position
+    FROM \`${SC_DATASET}.searchdata_site_impression\`
+    WHERE data_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
+      AND search_type = 'web'
+      AND LOWER(query) LIKE '%ercol%'
+      AND is_anonymized_query = FALSE
+    GROUP BY 1
+    HAVING impressions >= 5
+    ORDER BY clicks DESC LIMIT 50`,
+
+  topUrls: `
+    SELECT
+      REGEXP_REPLACE(url, 'https?://[^/]+', '') AS page,
+      SUM(clicks) AS clicks,
+      SUM(impressions) AS impressions,
+      SAFE_DIVIDE(SUM(clicks),SUM(impressions))*100 AS ctr,
+      SAFE_DIVIDE(SUM(sum_top_position),SUM(impressions))+1 AS avg_position
+    FROM \`${SC_DATASET}.searchdata_url_impression\`
+    WHERE data_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
+      AND search_type = 'web'
+      AND LOWER(url) LIKE '%ercol%'
+    GROUP BY 1
+    HAVING impressions >= 5
+    ORDER BY clicks DESC LIMIT 30`,
+
+  newKeywords: `
+    SELECT query,
+      SUM(clicks) AS clicks,
+      SUM(impressions) AS impressions,
+      SAFE_DIVIDE(SUM(clicks),SUM(impressions))*100 AS ctr,
+      SAFE_DIVIDE(SUM(sum_top_position),SUM(impressions))+1 AS avg_position
+    FROM \`${SC_DATASET}.searchdata_site_impression\`
+    WHERE data_date >= '2026-03-25'
+      AND search_type = 'web'
+      AND LOWER(query) LIKE '%ercol%'
+      AND is_anonymized_query = FALSE
+      AND query NOT IN (
+        SELECT DISTINCT query FROM \`${SC_DATASET}.searchdata_site_impression\`
+        WHERE data_date < '2026-03-25'
+          AND search_type = 'web'
+          AND LOWER(query) LIKE '%ercol%'
+          AND is_anonymized_query = FALSE
+      )
+    GROUP BY 1
+    HAVING impressions >= 3
+    ORDER BY impressions DESC LIMIT 30`,
+};
 async function loadSnapshots(){
   try{ const r=await fetch('data/ercol_product_history.json'); const d=await r.json(); return d.snapshots||[]; }
   catch{ return []; }
@@ -1220,7 +1371,111 @@ function renderCatalogue(snapshots){
   }).join('');
 }
 
-// ══════════════════════════════════════════════════ INIT
+// ══════════════════════════════════════════════════ RENDER SEARCH CONSOLE
+function renderSearchConsole(trend, keywords, urls, newKw){
+  if(!keywords.length){
+    document.getElementById('tab-searchconsole').innerHTML=`<div class="empty"><strong>No Search Console data yet</strong>Data started flowing ${new Date().toLocaleDateString('en-GB')}. Check back in 24–48 hours for your first keyword data.</div>`;
+    return;
+  }
+
+  const totalClicks = keywords.reduce((a,r)=>a+(+r.clicks||0),0);
+  const totalImps   = keywords.reduce((a,r)=>a+(+r.impressions||0),0);
+  const avgPos      = keywords.length ? (keywords.reduce((a,r)=>a+(+r.avg_position||0),0)/keywords.length).toFixed(1) : '—';
+  const avgCTR      = totalImps>0 ? (totalClicks/totalImps*100).toFixed(2) : '0';
+  const pg1         = keywords.filter(r=>+r.avg_position<=10).length;
+
+  document.getElementById('sc-kpis').innerHTML=[
+    `<div class="kpi cg"><div class="kl">Total Ercol Clicks (90d)</div><div class="kv">${fmtN(totalClicks)}</div><div class="kc neut">From queries containing "ercol"</div></div>`,
+    `<div class="kpi cg"><div class="kl">Total Impressions (90d)</div><div class="kv">${fmtN(totalImps)}</div><div class="kc neut">How often Ercol pages appeared in search</div></div>`,
+    `<div class="kpi cd"><div class="kl">Avg CTR</div><div class="kv">${avgCTR}<span class="ku">%</span></div><div class="kc neut">Clicks ÷ impressions</div></div>`,
+    `<div class="kpi cb"><div class="kl">Avg Position</div><div class="kv">${avgPos}</div><div class="kc neut">Across all Ercol queries</div></div>`,
+    `<div class="kpi cg"><div class="kl">Page 1 Keywords</div><div class="kv">${pg1}</div><div class="kc up">Ranking in positions 1–10</div></div>`,
+    `<div class="kpi ca"><div class="kl">New Keywords Since Expansion</div><div class="kv">${newKw.length}</div><div class="kc up">Queries not present before 25 Mar 2026</div></div>`,
+  ].join('');
+
+  // Trend chart — daily clicks + impressions
+  if(trend.length){
+    const tdates = trend.map(r=>r.data_date);
+    const tclicks = trend.map(r=>+r.clicks||0);
+    const timps   = trend.map(r=>+r.impressions||0);
+    // Colour by phase
+    const tCols = tdates.map(d=>d>='2026-03-25'?'rgba(58,170,106,0.75)':d>='2026-03-01'?'rgba(201,125,32,0.7)':'rgba(153,153,187,0.5)');
+    new Chart(document.getElementById('scTrendChart'),{
+      type:'bar',data:{labels:tdates,datasets:[
+        {label:'Clicks',data:tclicks,backgroundColor:tCols,borderRadius:1,yAxisID:'yC',order:2},
+        {label:'Impressions',data:timps,type:'line',borderColor:'#2B7FBF',backgroundColor:'rgba(43,127,191,0.06)',
+         borderWidth:1.5,pointRadius:0,tension:0.3,fill:true,yAxisID:'yI',order:1},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        plugins:{legend:{display:true,labels:{color:'#555',usePointStyle:true}},tooltip:{...TIP,callbacks:{label:c=>` ${c.dataset.label}: ${Math.round(c.raw).toLocaleString()}`}}},
+        scales:{yC:{position:'left',...AX(),ticks:{...AX().ticks,callback:v=>v>=1000?(v/1000).toFixed(0)+'K':v}},
+                yI:{position:'right',grid:{drawOnChartArea:false},border:{color:'rgba(0,0,0,0.12)'},ticks:{color:'#777',callback:v=>v>=1000?(v/1000).toFixed(0)+'K':v}},
+                x:{...AX(),ticks:{...AX().ticks,maxTicksLimit:20,maxRotation:45}}}}});
+  }
+
+  // Top 15 by clicks horizontal bar
+  const top15c = keywords.slice(0,15);
+  const top15i = [...keywords].sort((a,b)=>b.impressions-a.impressions).slice(0,15);
+  mkHBar('scTopClicksChart',top15c.map(r=>truncate(r.query,30)),top15c.map(r=>+r.clicks),
+    top15c.map((_,i)=>i===0?'rgba(26,26,26,0.85)':i<3?'rgba(26,26,26,0.55)':'rgba(42,42,42,0.2)'));
+  mkHBar('scTopImpChart',top15i.map(r=>truncate(r.query,30)),top15i.map(r=>+r.impressions),
+    top15i.map((_,i)=>i===0?'rgba(43,127,191,0.85)':i<3?'rgba(43,127,191,0.55)':'rgba(43,127,191,0.2)'));
+
+  // Position chart — top 15 by clicks, show avg position
+  const posData = top15c.map(r=>+(+r.avg_position).toFixed(1));
+  const posCols = posData.map(p=>p<=3?'rgba(58,170,106,0.8)':p<=10?'rgba(201,125,32,0.7)':'rgba(217,64,64,0.6)');
+  new Chart(document.getElementById('scPositionChart'),{
+    type:'bar',data:{labels:top15c.map(r=>truncate(r.query,28)),datasets:[{label:'Avg Position',data:posData,backgroundColor:posCols,borderRadius:2}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...TIP,callbacks:{label:c=>` Position: ${c.raw.toFixed(1)}`}}},
+      scales:{x:{...AX(),reverse:false,min:0,max:Math.min(50,Math.max(...posData)+5),ticks:{...AX().ticks,callback:v=>`#${v}`}},y:{...AX(),ticks:{...AX().ticks,font:{size:10}}}}}});
+
+  // CTR vs Position scatter
+  const scatterData = keywords.filter(r=>+r.impressions>=10).map(r=>({
+    x:+(+r.avg_position).toFixed(1), y:+(+r.ctr).toFixed(2),
+    r: Math.max(3, Math.min(15, Math.sqrt(+r.impressions))),
+    label:r.query, clicks:r.clicks, impressions:r.impressions,
+  }));
+  new Chart(document.getElementById('scCTRChart'),{
+    type:'bubble',data:{datasets:[{label:'Keywords',data:scatterData,
+      backgroundColor:'rgba(43,127,191,0.35)',borderColor:'rgba(43,127,191,0.7)',borderWidth:1}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...TIP,callbacks:{label:c=>{const d=c.raw;return [`${d.label}`,`Position: ${d.x} · CTR: ${d.y.toFixed(1)}%`,`Clicks: ${d.clicks} · Impressions: ${d.impressions}`];}}}},
+      scales:{x:{...AX(),title:{display:true,text:'Avg Position (lower = better)',color:'#777',font:{size:10}}},
+              y:{...AX(),title:{display:true,text:'CTR %',color:'#777',font:{size:10}},ticks:{...AX().ticks,callback:v=>v+'%'}}}}});
+
+  // URLs chart
+  mkHBar('scUrlChart',urls.slice(0,15).map(r=>truncate(r.page,40)),urls.slice(0,15).map(r=>+r.clicks),
+    urls.slice(0,15).map((_,i)=>i===0?'rgba(26,26,26,0.85)':i<3?'rgba(26,26,26,0.55)':'rgba(42,42,42,0.2)'));
+
+  // Keyword table
+  document.getElementById('sc-keyword-table').innerHTML=keywords.slice(0,40).map(r=>`<tr>
+    <td style="max-width:280px;white-space:normal">${r.query}</td>
+    <td>${fmtN(+r.clicks)}</td><td>${fmtN(+r.impressions)}</td>
+    <td>${(+r.ctr||0).toFixed(2)}%</td>
+    <td><span style="color:${+r.avg_position<=3?'#2a7a10':+r.avg_position<=10?'var(--amber)':'var(--red)'};font-weight:700">#${(+r.avg_position).toFixed(1)}</span></td>
+  </tr>`).join('');
+
+  // New keywords table
+  if(newKw.length){
+    document.getElementById('sc-new-keywords-table').innerHTML=newKw.slice(0,20).map(r=>`<tr>
+      <td style="max-width:280px;white-space:normal">${r.query} <span class="badge br">New</span></td>
+      <td>${fmtN(+r.clicks)}</td><td>${fmtN(+r.impressions)}</td>
+      <td>${(+r.ctr||0).toFixed(2)}%</td>
+      <td>#${(+r.avg_position).toFixed(1)}</td>
+    </tr>`).join('');
+  } else {
+    document.getElementById('sc-new-keywords-table').innerHTML=`<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">No new keywords detected yet — data may not go back far enough to compare pre/post expansion</td></tr>`;
+  }
+
+  // Insights
+  const top=keywords[0];
+  if(top) document.getElementById('ins-sc-top').innerHTML=`<strong>${top.query}</strong> is the top Ercol keyword with <strong>${fmtN(+top.clicks)} clicks</strong> and <strong>${fmtN(+top.impressions)} impressions</strong> at avg position <strong>#${(+top.avg_position).toFixed(1)}</strong>.`;
+  const ctrOpps = keywords.filter(r=>+r.impressions>=100&&+r.ctr<2).sort((a,b)=>b.impressions-a.impressions).slice(0,3);
+  document.getElementById('ins-sc-ctr').innerHTML=ctrOpps.length?`<strong>${ctrOpps.length} keywords</strong> have 100+ impressions but below 2% CTR: ${ctrOpps.map(r=>`<strong>${r.query}</strong> (#${(+r.avg_position).toFixed(0)}, ${(+r.ctr).toFixed(1)}% CTR)`).join(', ')}. Consider improving title tags.`:`No obvious CTR opportunities found — click-through rates are healthy across Ercol keywords.`;
+  const pos4to10 = keywords.filter(r=>+r.avg_position>=4&&+r.avg_position<=10);
+  document.getElementById('ins-sc-pos').innerHTML=`<strong>${pos4to10.length} Ercol keywords</strong> rank in positions 4–10 — on page one but not in the top 3. These are the highest-value optimisation targets, as small position improvements here drive significant click increases.`;
+}
 async function init(){
   const overlay=document.getElementById('loading-overlay');
   const errBanner=document.getElementById('error-banner');
@@ -1274,6 +1529,17 @@ async function init(){
     setLoading('Querying BigQuery…','Category & merchandising data (5/5)');
     try{ const cats=await bq(SQL.categories,token); renderMerchandising(cats); }
     catch(e){ console.warn('Categories query failed:',e.message); renderMerchandising([]); }
+
+    setLoading('Querying BigQuery…','Search Console keyword data');
+    try{
+      const [scTrend,scKw,scUrls,scNew] = await Promise.all([
+        bq(SC_SQL.trend,token),
+        bq(SC_SQL.topKeywords,token),
+        bq(SC_SQL.topUrls,token),
+        bq(SC_SQL.newKeywords,token),
+      ]);
+      renderSearchConsole(scTrend,scKw,scUrls,scNew);
+    } catch(e){ console.warn('Search Console query failed:',e.message); renderSearchConsole([],[],[],[]); }
 
     overlay.style.display='none';
 
