@@ -717,20 +717,20 @@ async function getToken(key){
   return d.access_token;
 }
 
-async function bq(sql, token){
+async function bq(sql, token, location=BQ_LOC){
   const url = `https://bigquery.googleapis.com/bigquery/v2/projects/${BQ_PROJECT}/queries`;
   const r = await fetch(url,{method:'POST',headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'},
-    body:JSON.stringify({query:sql,useLegacySql:false,timeoutMs:30000,location:BQ_LOC})});
+    body:JSON.stringify({query:sql,useLegacySql:false,timeoutMs:30000,location:location})});
   const d = await r.json();
   if(d.error) throw new Error(d.error.message);
-  if(!d.jobComplete) return pollJob(d.jobReference,token);
+  if(!d.jobComplete) return pollJob(d.jobReference,token,location);
   return parseRows(d);
 }
 
-async function pollJob(ref,token){
+async function pollJob(ref,token,location=BQ_LOC){
   for(let i=0;i<15;i++){
     await new Promise(r=>setTimeout(r,2000));
-    const r = await fetch(`https://bigquery.googleapis.com/bigquery/v2/projects/${ref.projectId}/queries/${ref.jobId}?location=${BQ_LOC}&timeoutMs=10000`,{headers:{'Authorization':`Bearer ${token}`}});
+    const r = await fetch(`https://bigquery.googleapis.com/bigquery/v2/projects/${ref.projectId}/queries/${ref.jobId}?location=${location}&timeoutMs=10000`,{headers:{'Authorization':`Bearer ${token}`}});
     const d = await r.json();
     if(d.jobComplete) return parseRows(d);
   }
@@ -1533,10 +1533,10 @@ async function init(){
     setLoading('Querying BigQuery…','Search Console keyword data');
     try{
       const [scTrend,scKw,scUrls,scNew] = await Promise.all([
-        bq(SC_SQL.trend,token),
-        bq(SC_SQL.topKeywords,token),
-        bq(SC_SQL.topUrls,token),
-        bq(SC_SQL.newKeywords,token),
+        bq(SC_SQL.trend,token,'US'),
+        bq(SC_SQL.topKeywords,token,'US'),
+        bq(SC_SQL.topUrls,token,'US'),
+        bq(SC_SQL.newKeywords,token,'US'),
       ]);
       renderSearchConsole(scTrend,scKw,scUrls,scNew);
     } catch(e){ console.warn('Search Console query failed:',e.message); renderSearchConsole([],[],[],[]); }
