@@ -718,14 +718,17 @@ async function getToken(key){
 }
 
 async function bq(sql, token, location=BQ_LOC){
-  const url = `https://bigquery.googleapis.com/bigquery/v2/projects/${BQ_PROJECT}/queries`;
-  const r = await fetch(url,{method:'POST',headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'},
-    body:JSON.stringify({query:sql,useLegacySql:false,timeoutMs:30000,location:location})});
-  if(!r.ok){ const txt=await r.text(); throw new Error(`HTTP ${r.status}: ${txt.slice(0,200)}`); }
-  const d = await r.json();
-  if(d.error){ console.error('BQ error response:',JSON.stringify(d.error)); throw new Error(d.error.message); }
-  if(!d.jobComplete) return pollJob(d.jobReference,token,location);
-  return parseRows(d);
+  // Use jobs.insert (async) for reliability — avoids timeouts on heavier queries
+  const jobUrl = `https://bigquery.googleapis.com/bigquery/v2/projects/${BQ_PROJECT}/jobs`;
+  const r = await fetch(jobUrl,{method:'POST',
+    headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'},
+    body:JSON.stringify({
+      configuration:{ query:{ query:sql, useLegacySql:false, location:location } }
+    })});
+  if(!r.ok){ const txt=await r.text(); throw new Error(`HTTP ${r.status}: ${txt.slice(0,300)}`); }
+  const job = await r.json();
+  if(job.error) throw new Error(job.error.message);
+  return pollJob({projectId:BQ_PROJECT, jobId:job.jobReference.jobId}, token, location);
 }
 
 async function pollJob(ref,token,location=BQ_LOC){
@@ -1542,16 +1545,11 @@ async function init(){
 
     setLoading('Querying BigQuery…','Search Console keyword data');
     try{
-      // Try europe-west2 first, fall back to US — SC dataset location varies
-      let scLoc = 'europe-west2';
-      let scTest;
-      try{ scTest = await bq(`SELECT COUNT(*) FROM \`${SC_DATASET}.searchdata_site_impression\` WHERE data_date=CURRENT_DATE() LIMIT 1`,token,'europe-west2'); }
-      catch(e){ scLoc='US'; }
       const [scTrend,scKw,scUrls,scNew] = await Promise.all([
-        bq(SC_SQL.trend,token,scLoc),
-        bq(SC_SQL.topKeywords,token,scLoc),
-        bq(SC_SQL.topUrls,token,scLoc),
-        bq(SC_SQL.newKeywords,token,scLoc),
+        bq(SC_SQL.trend,token,'EU'),
+        bq(SC_SQL.topKeywords,token,'EU'),
+        bq(SC_SQL.topUrls,token,'EU'),
+        bq(SC_SQL.newKeywords,token,'EU'),
       ]);
       renderSearchConsole(scTrend,scKw,scUrls,scNew);
     } catch(e){ console.warn('Search Console query failed:',e.message); renderSearchConsole([],[],[],[]); }
