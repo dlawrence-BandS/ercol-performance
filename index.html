@@ -730,9 +730,14 @@ async function bq(sql, token, location=BQ_LOC){
 async function pollJob(ref,token,location=BQ_LOC){
   for(let i=0;i<15;i++){
     await new Promise(r=>setTimeout(r,2000));
-    const r = await fetch(`https://bigquery.googleapis.com/bigquery/v2/projects/${ref.projectId}/queries/${ref.jobId}?location=${location}&timeoutMs=10000`,{headers:{'Authorization':`Bearer ${token}`}});
+    const r = await fetch(`https://bigquery.googleapis.com/bigquery/v2/projects/${ref.projectId}/jobs/${ref.jobId}?location=${location}`,{headers:{'Authorization':`Bearer ${token}`}});
     const d = await r.json();
-    if(d.jobComplete) return parseRows(d);
+    if(d.status&&d.status.state==='DONE'){
+      if(d.status.errorResult) throw new Error(d.status.errorResult.message);
+      // Fetch results
+      const rr = await fetch(`https://bigquery.googleapis.com/bigquery/v2/projects/${ref.projectId}/queries/${ref.jobId}?location=${location}&timeoutMs=10000`,{headers:{'Authorization':`Bearer ${token}`}});
+      return parseRows(await rr.json());
+    }
   }
   throw new Error('Query timed out');
 }
@@ -860,7 +865,7 @@ const SC_SQL = {
       SUM(impressions) AS impressions,
       SAFE_DIVIDE(SUM(clicks),SUM(impressions))*100 AS ctr,
       SAFE_DIVIDE(SUM(sum_top_position),SUM(impressions))+1 AS avg_position
-    FROM \`${SC_DATASET}.v_gsc_site\`
+    FROM \`${SC_DATASET}.searchdata_site_impression\`
     WHERE data_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 480 DAY)
       AND search_type = 'web'
       AND LOWER(query) LIKE '%ercol%'
@@ -872,7 +877,7 @@ const SC_SQL = {
       SUM(impressions) AS impressions,
       SAFE_DIVIDE(SUM(clicks),SUM(impressions))*100 AS ctr,
       SAFE_DIVIDE(SUM(sum_top_position),SUM(impressions))+1 AS avg_position
-    FROM \`${SC_DATASET}.v_gsc_site\`
+    FROM \`${SC_DATASET}.searchdata_site_impression\`
     WHERE data_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
       AND search_type = 'web'
       AND LOWER(query) LIKE '%ercol%'
@@ -888,7 +893,7 @@ const SC_SQL = {
       SUM(impressions) AS impressions,
       SAFE_DIVIDE(SUM(clicks),SUM(impressions))*100 AS ctr,
       SAFE_DIVIDE(SUM(sum_top_position),SUM(impressions))+1 AS avg_position
-    FROM \`${SC_DATASET}.v_gsc_url\`
+    FROM \`${SC_DATASET}.searchdata_url_impression\`
     WHERE data_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
       AND search_type = 'web'
       AND LOWER(url) LIKE '%ercol%'
@@ -902,13 +907,13 @@ const SC_SQL = {
       SUM(impressions) AS impressions,
       SAFE_DIVIDE(SUM(clicks),SUM(impressions))*100 AS ctr,
       SAFE_DIVIDE(SUM(sum_top_position),SUM(impressions))+1 AS avg_position
-    FROM \`${SC_DATASET}.v_gsc_site\`
+    FROM \`${SC_DATASET}.searchdata_site_impression\`
     WHERE data_date >= '2026-03-25'
       AND search_type = 'web'
       AND LOWER(query) LIKE '%ercol%'
       AND is_anonymized_query = FALSE
       AND query NOT IN (
-        SELECT DISTINCT query FROM \`${SC_DATASET}.v_gsc_site\`
+        SELECT DISTINCT query FROM \`${SC_DATASET}.searchdata_site_impression\`
         WHERE data_date < '2026-03-25'
           AND search_type = 'web'
           AND LOWER(query) LIKE '%ercol%'
@@ -1537,10 +1542,10 @@ async function init(){
     setLoading('Querying BigQuery…','Search Console keyword data');
     try{
       const [scTrend,scKw,scUrls,scNew] = await Promise.all([
-        bq(SC_SQL.trend,token,'US'),
-        bq(SC_SQL.topKeywords,token,'US'),
-        bq(SC_SQL.topUrls,token,'US'),
-        bq(SC_SQL.newKeywords,token,'US'),
+        bq(SC_SQL.trend,token,'europe-west2'),
+        bq(SC_SQL.topKeywords,token,'europe-west2'),
+        bq(SC_SQL.topUrls,token,'europe-west2'),
+        bq(SC_SQL.newKeywords,token,'europe-west2'),
       ]);
       renderSearchConsole(scTrend,scKw,scUrls,scNew);
     } catch(e){ console.warn('Search Console query failed:',e.message); renderSearchConsole([],[],[],[]); }
