@@ -868,7 +868,7 @@ const SC_SQL = {
       SUM(clicks) AS clicks,
       SUM(impressions) AS impressions,
       SAFE_DIVIDE(SUM(clicks),SUM(impressions))*100 AS ctr,
-      SAFE_DIVIDE(SUM(sum_position),SUM(impressions))+1 AS avg_position
+      SAFE_DIVIDE(SUM(sum_top_position),SUM(impressions))+1 AS avg_position
     FROM \`${SC_DATASET}.searchdata_site_impression\`
     WHERE data_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 480 DAY)
       AND search_type = 'web'
@@ -880,7 +880,7 @@ const SC_SQL = {
       SUM(clicks) AS clicks,
       SUM(impressions) AS impressions,
       SAFE_DIVIDE(SUM(clicks),SUM(impressions))*100 AS ctr,
-      SAFE_DIVIDE(SUM(sum_position),SUM(impressions))+1 AS avg_position
+      SAFE_DIVIDE(SUM(sum_top_position),SUM(impressions))+1 AS avg_position
     FROM \`${SC_DATASET}.searchdata_site_impression\`
     WHERE data_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
       AND search_type = 'web'
@@ -896,7 +896,7 @@ const SC_SQL = {
       SUM(clicks) AS clicks,
       SUM(impressions) AS impressions,
       SAFE_DIVIDE(SUM(clicks),SUM(impressions))*100 AS ctr,
-      SAFE_DIVIDE(SUM(sum_position),SUM(impressions))+1 AS avg_position
+      SAFE_DIVIDE(SUM(sum_top_position),SUM(impressions))+1 AS avg_position
     FROM \`${SC_DATASET}.searchdata_url_impression\`
     WHERE data_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
       AND search_type = 'web'
@@ -910,7 +910,7 @@ const SC_SQL = {
       SUM(clicks) AS clicks,
       SUM(impressions) AS impressions,
       SAFE_DIVIDE(SUM(clicks),SUM(impressions))*100 AS ctr,
-      SAFE_DIVIDE(SUM(sum_position),SUM(impressions))+1 AS avg_position
+      SAFE_DIVIDE(SUM(sum_top_position),SUM(impressions))+1 AS avg_position
     FROM \`${SC_DATASET}.searchdata_site_impression\`
     WHERE data_date >= '2026-03-25'
       AND search_type = 'web'
