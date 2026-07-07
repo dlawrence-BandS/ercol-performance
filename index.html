@@ -702,7 +702,7 @@ function clearKey(){
 async function getToken(key){
   const now = Math.floor(Date.now()/1000);
   const hdr = {alg:'RS256',typ:'JWT'};
-  const pay = {iss:key.client_email,scope:'https://www.googleapis.com/auth/bigquery.readonly',
+  const pay = {iss:key.client_email,scope:'https://www.googleapis.com/auth/bigquery',
                aud:'https://oauth2.googleapis.com/token',exp:now+3600,iat:now};
   const b64u = s => btoa(unescape(encodeURIComponent(JSON.stringify(s)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
   const unsigned = `${b64u(hdr)}.${b64u(pay)}`;
