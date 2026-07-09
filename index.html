@@ -735,6 +735,16 @@ async function bq(sql, token, preferredLoc=null){
     if(loc) body.location = loc;
     const resp = await fetch(`https://bigquery.googleapis.com/bigquery/v2/projects/${BQ_PROJECT}/queries`, {
       method:'POST', headers:{'Authorization':'Bearer '+token, 'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    // 400 = query too large for sync endpoint, fall back to jobs.insert
+    if(resp.status === 400){
+      const jobBody = {configuration:{query:{query:sql, useLegacySql:false, ...(loc?{location:loc}:{})}}};
+      const jr = await fetch(`https://bigquery.googleapis.com/bigquery/v2/projects/${BQ_PROJECT}/jobs`, {
+        method:'POST', headers:{'Authorization':'Bearer '+token, 'Content-Type':'application/json'}, body:JSON.stringify(jobBody)});
+      const job = await jr.json();
+      if(job.error) throw new Error(job.error.message);
+      if(loc) localStorage.setItem(LS_LOC, loc);
+      return pollJobAsync(job.jobReference.jobId, loc||'', token);
+    }
     const res = await resp.json();
     if(res.error){
       lastErr = new Error(res.error.message);
@@ -752,6 +762,21 @@ async function bq(sql, token, preferredLoc=null){
     return parseRows(out);
   }
   throw lastErr || new Error('Query failed across all locations');
+}
+
+async function pollJobAsync(jobId, location, token){
+  for(let i=0;i<20;i++){
+    await new Promise(r=>setTimeout(r,2000));
+    const loc = location ? `?location=${location}` : '';
+    const r = await fetch(`https://bigquery.googleapis.com/bigquery/v2/projects/${BQ_PROJECT}/jobs/${jobId}${loc}`,{headers:{'Authorization':'Bearer '+token}});
+    const d = await r.json();
+    if(d.status&&d.status.state==='DONE'){
+      if(d.status.errorResult) throw new Error(d.status.errorResult.message);
+      const rr = await fetch(`https://bigquery.googleapis.com/bigquery/v2/projects/${BQ_PROJECT}/queries/${jobId}?maxResults=10000${location?'&location='+location:''}`,{headers:{'Authorization':'Bearer '+token}});
+      return parseRows(await rr.json());
+    }
+  }
+  throw new Error('Query timed out');
 }
 
 function parseRows(d){
@@ -872,14 +897,14 @@ const SC_SITE_UNION = `(
   SELECT data_date, query, is_anonymized_query, search_type, impressions, clicks, sum_top_position AS pos
   FROM \`${SC_DATASET}.searchdata_site_impression\`
   UNION ALL
-  SELECT data_date, query, is_anonymized_query, search_type, impressions, clicks, sum_top_position AS pos
+  SELECT data_date, query, is_anonymized_query, search_type, impressions, clicks, sum_position AS pos
   FROM \`${SC_DATASET}.gsc_backfill_site\`
 )`;
 const SC_URL_UNION = `(
   SELECT data_date, url, query, is_anonymized_query, search_type, impressions, clicks, sum_top_position AS pos
   FROM \`${SC_DATASET}.searchdata_url_impression\`
   UNION ALL
-  SELECT data_date, url, query, is_anonymized_query, search_type, impressions, clicks, sum_top_position AS pos
+  SELECT data_date, url, query, is_anonymized_query, search_type, impressions, clicks, sum_position AS pos
   FROM \`${SC_DATASET}.gsc_backfill_url\`
 )`;
 const SC_SQL = {
