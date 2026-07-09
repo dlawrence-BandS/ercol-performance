@@ -697,7 +697,7 @@ function saveKey(){
 }
 
 function clearKey(){
-  if(confirm('Remove saved API key?')){ localStorage.removeItem(KEY_STORE); location.reload(); }
+  if(confirm('Remove saved API key?')){ localStorage.removeItem(KEY_STORE); localStorage.removeItem(LS_LOC); location.reload(); }
 }
 
 // ══════════════════════════════════════════════════ BIGQUERY AUTH
@@ -710,7 +710,7 @@ async function getToken(key){
   if(_cachedToken && Date.now() < _tokenExpiry - 60000) return _cachedToken;
   const now = Math.floor(Date.now()/1000);
   const hdr = b64url(JSON.stringify({alg:'RS256',typ:'JWT'}));
-  const clm = b64url(JSON.stringify({iss:key.client_email, scope:'https://www.googleapis.com/auth/bigquery.readonly', aud:'https://oauth2.googleapis.com/token', exp:now+3600, iat:now}));
+  const clm = b64url(JSON.stringify({iss:key.client_email, scope:'https://www.googleapis.com/auth/bigquery', aud:'https://oauth2.googleapis.com/token', exp:now+3600, iat:now}));
   const unsigned = hdr + '.' + clm;
   const pem = key.private_key.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\s/g,'');
   const bin = Uint8Array.from(atob(pem), c=>c.charCodeAt(0));
@@ -896,16 +896,10 @@ const SC_DATASET = 'commanding-air-450109-p0.searchconsole';
 const SC_SITE_UNION = `(
   SELECT data_date, query, is_anonymized_query, search_type, impressions, clicks, sum_top_position AS pos
   FROM \`${SC_DATASET}.searchdata_site_impression\`
-  UNION ALL
-  SELECT data_date, query, is_anonymized_query, search_type, impressions, clicks, sum_position AS pos
-  FROM \`${SC_DATASET}.gsc_backfill_site\`
 )`;
 const SC_URL_UNION = `(
   SELECT data_date, url, query, is_anonymized_query, search_type, impressions, clicks, sum_top_position AS pos
   FROM \`${SC_DATASET}.searchdata_url_impression\`
-  UNION ALL
-  SELECT data_date, url, query, is_anonymized_query, search_type, impressions, clicks, sum_position AS pos
-  FROM \`${SC_DATASET}.gsc_backfill_url\`
 )`;
 const SC_SQL = {
 
