@@ -882,13 +882,6 @@ const SC_URL_UNION = `(
   SELECT data_date, url, query, is_anonymized_query, search_type, impressions, clicks, sum_top_position AS pos
   FROM \`${SC_DATASET}.gsc_backfill_url\`
 )`;
-const SC_URL_UNION = `(
-  SELECT data_date, url, query, is_anonymized_query, search_type, impressions, clicks, sum_top_position AS pos
-  FROM \`${SC_DATASET}.searchdata_url_impression\`
-  UNION ALL
-  SELECT data_date, url, query, is_anonymized_query, search_type, impressions, clicks, sum_top_position AS pos
-  FROM \`${SC_DATASET}.gsc_backfill_url\`
-)`;
 const SC_SQL = {
 
   trend: `
