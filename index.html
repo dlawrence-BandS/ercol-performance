@@ -988,20 +988,26 @@ const BRAND_M={
   'Orla Kiely':[325,4257,4651,10772,2748,12673,14147,2876,11954,18960,8679,6570,11377,1175],
 };
 
+// ══════════════════════════════════════════════════ CHART REGISTRY
+const _charts = {};
+function mkChart(id, config){
+  if(_charts[id]) { _charts[id].destroy(); delete _charts[id]; }
+  const ctx = document.getElementById(id);
+  if(!ctx) return null;
+  _charts[id] = new Chart(ctx, config);
+  return _charts[id];
+}
+
 // ══════════════════════════════════════════════════ CHART HELPERS
 function mkBar(id,labels,data,opts={}){
-  const ctx=document.getElementById(id);
-  if(!ctx) return;
-  return new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:opts.label||'',data,
+  return mkChart(id,{type:'bar',data:{labels,datasets:[{label:opts.label||'',data,
     backgroundColor:opts.colors||'rgba(42,42,42,0.2)',borderRadius:2,...(opts.ds||{})}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...TIP,...(opts.tip||{})}},
       scales:{y:{...AX(),ticks:{...AX().ticks,callback:opts.yFmt||(v=>v)}},x:{...AX()},...(opts.scales||{})}}});
 }
 
 function mkHBar(id,labels,data,colors){
-  const ctx=document.getElementById(id);
-  if(!ctx) return;
-  return new Chart(ctx,{type:'bar',data:{labels,datasets:[{data,backgroundColor:colors||'rgba(42,42,42,0.2)',borderRadius:2}]},
+  return mkChart(id,{type:'bar',data:{labels,datasets:[{data,backgroundColor:colors||'rgba(42,42,42,0.2)',borderRadius:2}]},
     options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{...TIP,callbacks:{label:c=>` ${c.raw.toLocaleString()}`}}},
       scales:{x:{...AX(),ticks:{...AX().ticks,callback:v=>v>=1000?(v/1000).toFixed(0)+'K':v}},y:{...AX(),ticks:{...AX().ticks,font:{size:10}}}}}});
@@ -1018,7 +1024,7 @@ function renderOverview(monthly){
   const rampCols=phases.map(p=>p==='ramp'?'rgba(58,170,106,0.8)':p==='mixed'?'rgba(201,125,32,0.7)':'rgba(153,153,187,0.5)');
 
   // Timeline
-  new Chart(document.getElementById('timelineChart'),{type:'bar',data:{labels,datasets:[
+  mkChart('timelineChart',{type:'bar',data:{labels,datasets:[
     {label:'Sessions',data:sessions,backgroundColor:barCols,borderRadius:2,yAxisID:'yS',order:2},
     {label:'Revenue',data:revenue,type:'line',borderColor:'#1a1a1a',backgroundColor:'rgba(26,26,26,0.05)',
      borderWidth:2,pointRadius:3,pointBackgroundColor:'#1a1a1a',tension:0.3,fill:true,yAxisID:'yR',order:1},
@@ -1032,7 +1038,7 @@ function renderOverview(monthly){
   mkBar('revChart',labels,revenue,{colors:rampCols,yFmt:v=>'£'+(v>=1000?(v/1000).toFixed(0)+'K':v),label:'Revenue'});
 
   // YoY
-  new Chart(document.getElementById('yoyChart'),{type:'bar',data:{labels:['April','May'],datasets:[
+  mkChart('yoyChart',{type:'bar',data:{labels:['April','May'],datasets:[
     {label:'2025',data:[29758,19059],backgroundColor:'rgba(153,153,187,0.6)',borderRadius:2},
     {label:'2026',data:[17481,23363],backgroundColor:'rgba(58,170,106,0.75)',borderRadius:2},
   ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
@@ -1040,7 +1046,7 @@ function renderOverview(monthly){
     scales:{y:{...AX(),ticks:{...AX().ticks,callback:v=>'£'+(v/1000).toFixed(0)+'K'}},x:{...AX()}}}});
 
   // Conv
-  new Chart(document.getElementById('convChart'),{type:'bar',data:{labels,datasets:[
+  mkChart('convChart',{type:'bar',data:{labels,datasets:[
     {label:'ATCs',data:monthly.map(d=>+d.add_to_carts),backgroundColor:'rgba(43,127,191,0.5)',borderRadius:2,yAxisID:'yA',order:2},
     {label:'Purchased',data:monthly.map(d=>+d.purchases),type:'line',borderColor:'#3aaa6a',backgroundColor:'rgba(58,170,106,0.08)',
      borderWidth:2,pointRadius:3,tension:0.3,yAxisID:'yP',order:1},
@@ -1051,7 +1057,7 @@ function renderOverview(monthly){
   // Donut
   const totalR=BRANDS.reduce((a,b)=>a+b.r,0);
   const bCols=['#1a1a1a','#2B7FBF','#3aaa6a','#C97D20','#D94040','#7B3FA0','#3aaa6a','#B8860B','#aaa'];
-  new Chart(document.getElementById('donutChart'),{type:'doughnut',data:{labels:BRANDS.map(b=>b.n),
+  mkChart('donutChart',{type:'doughnut',data:{labels:BRANDS.map(b=>b.n),
     datasets:[{data:BRANDS.map(b=>b.r),backgroundColor:bCols,borderColor:'#F5F2EE',borderWidth:3}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
       plugins:{legend:{position:'right',labels:{color:'#555',padding:10,usePointStyle:true,font:{size:10}}},
@@ -1074,7 +1080,7 @@ function renderOverview(monthly){
 
   // Brand monthly
   const blineC={Ercol:'#1a1a1a',Simba:'#2B7FBF','Pure Furniture':'#3aaa6a','Eng. Heritage':'#C97D20',Stressless:'#D94040','Orla Kiely':'#7B3FA0'};
-  new Chart(document.getElementById('brandMonthlyChart'),{type:'line',data:{labels:BRAND_M.labels,
+  mkChart('brandMonthlyChart',{type:'line',data:{labels:BRAND_M.labels,
     datasets:Object.entries(blineC).map(([n,c])=>({label:n,data:BRAND_M[n]||[],borderColor:c,
       backgroundColor:'transparent',borderWidth:n==='Ercol'?3:1.5,pointRadius:n==='Ercol'?4:2,pointBackgroundColor:c,tension:0.3}))},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
@@ -1234,7 +1240,7 @@ function renderSEO(seoMonthly,landingPages){
     `<div class="kpi cb"><div class="kl">Avg Engagement Rate — Organic</div><div class="kv">${orgS.reduce((a,v)=>a+v,0)>0?(orgE.reduce((a,v)=>a+v,0)/orgS.reduce((a,v)=>a+v,0)*100).toFixed(1):0}<span class="ku">%</span></div><div class="kc neut">Organic visitor quality</div></div>`,
   ].join('');
 
-  new Chart(document.getElementById('seoTrendChart'),{type:'bar',data:{labels,datasets:[
+  mkChart('seoTrendChart',{type:'bar',data:{labels,datasets:[
     {label:'Organic Sessions',data:orgS,backgroundColor:phases.map(phaseCol),borderRadius:2},
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:TIP},
     scales:{y:{...AX(),ticks:{...AX().ticks,callback:v=>v>=1000?(v/1000).toFixed(0)+'K':v}},x:{...AX()}}}});
@@ -1245,7 +1251,7 @@ function renderSEO(seoMonthly,landingPages){
     lp.map((_,i)=>i===0?'rgba(26,26,26,0.85)':i<3?'rgba(26,26,26,0.5)':'rgba(42,42,42,0.2)'));
 
   // Traffic mix placeholder (using organic vs estimated total)
-  new Chart(document.getElementById('trafficMixChart'),{type:'doughnut',data:{
+  mkChart('trafficMixChart',{type:'doughnut',data:{
     labels:['Organic','Paid / Other'],
     datasets:[{data:[totalOrg,Math.max(0,seoMonthly.reduce((a,r)=>a+(+r.org_sessions||0),0))],
       backgroundColor:['rgba(26,26,26,0.85)','rgba(42,42,42,0.2)'],borderColor:'#F5F2EE',borderWidth:3}]},
@@ -1289,7 +1295,7 @@ function renderEngagement(engData,devices){
     `<div class="kpi cd"><div class="kl">Device Split (90d)</div><div class="kv">${devices.length}</div><div class="kc neut">Device categories tracked</div></div>`,
   ].join('');
 
-  new Chart(document.getElementById('engRateChart'),{type:'line',data:{labels,datasets:[
+  mkChart('engRateChart',{type:'line',data:{labels,datasets:[
     {label:'Eng. Rate %',data:engRate,borderColor:'#1a1a1a',backgroundColor:'rgba(26,26,26,0.05)',
      borderWidth:2,pointRadius:4,pointBackgroundColor:barCols,tension:0.3,fill:true}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:TIP},
@@ -1299,7 +1305,7 @@ function renderEngagement(engData,devices){
   mkBar('bounceChart',labels,bounceRate,{colors:phases.map(p=>p==='ramp'?'rgba(217,64,64,0.6)':p==='mixed'?'rgba(201,125,32,0.6)':'rgba(153,153,187,0.5)'),yFmt:v=>v.toFixed(1)+'%',label:'Bounce %'});
 
   // New vs returning
-  new Chart(document.getElementById('newRetChart'),{type:'bar',data:{labels,datasets:[
+  mkChart('newRetChart',{type:'bar',data:{labels,datasets:[
     {label:'New',data:newU,backgroundColor:'rgba(43,127,191,0.6)',borderRadius:2,stack:'s'},
     {label:'Returning',data:retU,backgroundColor:'rgba(26,26,26,0.3)',borderRadius:2,stack:'s'},
   ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
@@ -1309,7 +1315,7 @@ function renderEngagement(engData,devices){
   // Devices
   const devS=devices.map(d=>+d.sessions||0),devR=devices.map(d=>+d.revenue||0);
   const devLabels=devices.map(d=>d.device||'Unknown');
-  new Chart(document.getElementById('deviceChart'),{type:'bar',data:{labels:devLabels,datasets:[
+  mkChart('deviceChart',{type:'bar',data:{labels:devLabels,datasets:[
     {label:'Sessions',data:devS,backgroundColor:'rgba(26,26,26,0.25)',borderRadius:2,yAxisID:'yS',order:2},
     {label:'Revenue',data:devR,type:'line',borderColor:'#3aaa6a',backgroundColor:'rgba(58,170,106,0.08)',
      borderWidth:2,pointRadius:6,pointBackgroundColor:'#3aaa6a',yAxisID:'yR',order:1},
@@ -1350,7 +1356,7 @@ function renderMerchandising(cats){
   const bandR=bands.map(b=>cats.filter(c=>+(c.avg_price||0)>=b.min&&+(c.avg_price||0)<b.max).reduce((a,c)=>a+(+c.revenue||0),0));
   const bandU=bands.map(b=>cats.filter(c=>+(c.avg_price||0)>=b.min&&+(c.avg_price||0)<b.max).reduce((a,c)=>a+(+c.units||0),0));
 
-  new Chart(document.getElementById('priceBandChart'),{type:'bar',data:{labels:bands.map(b=>b.l),datasets:[
+  mkChart('priceBandChart',{type:'bar',data:{labels:bands.map(b=>b.l),datasets:[
     {label:'Revenue',data:bandR,backgroundColor:'rgba(26,26,26,0.3)',borderRadius:2,yAxisID:'yR',order:2},
     {label:'Units',data:bandU,type:'line',borderColor:'#3aaa6a',borderWidth:2,pointRadius:5,pointBackgroundColor:'#3aaa6a',yAxisID:'yU',order:1},
   ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
@@ -1402,7 +1408,7 @@ function renderCatalogue(snapshots){
   // Product chart
   if(snapshots.length>1){
     const sl=snapshots.map(s=>s.date.slice(0,7));
-    new Chart(document.getElementById('productChart'),{type:'line',data:{labels:sl,datasets:[
+    mkChart('productChart',{type:'line',data:{labels:sl,datasets:[
       {label:'Products',data:snapshots.map(s=>s.products),borderColor:'#1a1a1a',backgroundColor:'rgba(26,26,26,0.06)',borderWidth:2.5,pointRadius:5,tension:0.3,fill:true,yAxisID:'yP'},
       {label:'Variants',data:snapshots.map(s=>s.variants),borderColor:'#6EE632',backgroundColor:'rgba(110,230,50,0.08)',borderWidth:1.5,pointRadius:3,tension:0.3,fill:true,yAxisID:'yV',borderDash:[4,2]},
     ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
@@ -1453,7 +1459,7 @@ function renderSearchConsole(trend, keywords, urls, newKw){
     const timps   = trend.map(r=>+r.impressions||0);
     // Colour by phase
     const tCols = tdates.map(d=>d>='2026-03-25'?'rgba(58,170,106,0.75)':d>='2026-03-01'?'rgba(201,125,32,0.7)':'rgba(153,153,187,0.5)');
-    new Chart(document.getElementById('scTrendChart'),{
+    mkChart('scTrendChart',{
       type:'bar',data:{labels:tdates,datasets:[
         {label:'Clicks',data:tclicks,backgroundColor:tCols,borderRadius:1,yAxisID:'yC',order:2},
         {label:'Impressions',data:timps,type:'line',borderColor:'#2B7FBF',backgroundColor:'rgba(43,127,191,0.06)',
@@ -1477,7 +1483,7 @@ function renderSearchConsole(trend, keywords, urls, newKw){
   // Position chart — top 15 by clicks, show avg position
   const posData = top15c.map(r=>+(+r.avg_position).toFixed(1));
   const posCols = posData.map(p=>p<=3?'rgba(58,170,106,0.8)':p<=10?'rgba(201,125,32,0.7)':'rgba(217,64,64,0.6)');
-  new Chart(document.getElementById('scPositionChart'),{
+  mkChart('scPositionChart',{
     type:'bar',data:{labels:top15c.map(r=>truncate(r.query,28)),datasets:[{label:'Avg Position',data:posData,backgroundColor:posCols,borderRadius:2}]},
     options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{...TIP,callbacks:{label:c=>` Position: ${c.raw.toFixed(1)}`}}},
@@ -1489,7 +1495,7 @@ function renderSearchConsole(trend, keywords, urls, newKw){
     r: Math.max(3, Math.min(15, Math.sqrt(+r.impressions))),
     label:r.query, clicks:r.clicks, impressions:r.impressions,
   }));
-  new Chart(document.getElementById('scCTRChart'),{
+  mkChart('scCTRChart',{
     type:'bubble',data:{datasets:[{label:'Keywords',data:scatterData,
       backgroundColor:'rgba(43,127,191,0.35)',borderColor:'rgba(43,127,191,0.7)',borderWidth:1}]},
     options:{responsive:true,maintainAspectRatio:false,
