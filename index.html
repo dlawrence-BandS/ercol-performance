@@ -787,11 +787,11 @@ function parseRows(d){
 
 async function bqSC(sql, token){
   // SC queries always in europe-west2 — never use cached location
-  const body = {query:sql, useLegacySql:false, timeoutMs:60000, maxResults:10000, location:'europe-west2'};
+  const body = {query:sql, useLegacySql:false, timeoutMs:60000, maxResults:10000, location:'EU'};
   const resp = await fetch(`https://bigquery.googleapis.com/bigquery/v2/projects/${BQ_PROJECT}/queries`, {
     method:'POST', headers:{'Authorization':'Bearer '+token, 'Content-Type':'application/json'}, body:JSON.stringify(body)});
   if(resp.status === 400){
-    const jobBody = {configuration:{query:{query:sql, useLegacySql:false, location:'europe-west2'}}};
+    const jobBody = {configuration:{query:{query:sql, useLegacySql:false, location:'EU'}}};
     const jr = await fetch(`https://bigquery.googleapis.com/bigquery/v2/projects/${BQ_PROJECT}/jobs`, {
       method:'POST', headers:{'Authorization':'Bearer '+token, 'Content-Type':'application/json'}, body:JSON.stringify(jobBody)});
     const job = await jr.json();
@@ -914,12 +914,12 @@ const SQL = {
 };
 
 // ══════════════════════════════════════════════════ SEARCH CONSOLE SQL
-// Backfill tables are in analytics_287404213, not searchconsole
-// v_gsc_site and v_gsc_url views are also in analytics_287404213
+// v_gsc_site and v_gsc_url are in the searchconsole dataset (EU location)
 // gsc_backfill_site uses sum_top_position; gsc_backfill_url uses sum_position
-const SC_DATASET = `${BQ_PROJECT}.${BQ_DATASET}`;
-const SC_SITE_UNION = `\`${SC_DATASET}.v_gsc_site\``;
-const SC_URL_UNION  = `\`${SC_DATASET}.v_gsc_url\``;
+const SC_PROJECT = 'commanding-air-450109-p0';
+const SC_DS = 'searchconsole';
+const SC_SITE_UNION = `\`${SC_PROJECT}.${SC_DS}.v_gsc_site\``;
+const SC_URL_UNION  = `\`${SC_PROJECT}.${SC_DS}.v_gsc_url\``;
 const SC_SQL = {
 
   trend: `
