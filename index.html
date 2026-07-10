@@ -1579,10 +1579,10 @@ async function init(){
     setLoading('Querying BigQuery…','Search Console keyword data');
     try{
       const [scTrend,scKw,scUrls,scNew] = await Promise.all([
-        bq(SC_SQL.trend,token),
-        bq(SC_SQL.topKeywords,token),
-        bq(SC_SQL.topUrls,token),
-        bq(SC_SQL.newKeywords,token),
+        bq(SC_SQL.trend,token,'europe-west2'),
+        bq(SC_SQL.topKeywords,token,'europe-west2'),
+        bq(SC_SQL.topUrls,token,'europe-west2'),
+        bq(SC_SQL.newKeywords,token,'europe-west2'),
       ]);
       renderSearchConsole(scTrend,scKw,scUrls,scNew);
     } catch(e){ console.warn('Search Console query failed:',e.message); renderSearchConsole([],[],[],[]); }
