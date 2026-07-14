@@ -915,10 +915,20 @@ const SQL = {
 
 // ══════════════════════════════════════════════════ SEARCH CONSOLE SQL
 // searchdata_url_impression has live data from 3 July 2026
-// v_gsc_url union view returns 0 for Ercol as backfill has no /ercol/ URLs
+// NOTE: earlier "no Ercol in backfill" finding was wrong — caused by case-sensitive
+// search_type = 'web' filter (backfill stores 'WEB'). gsc_backfill_site has 177k
+// ercol query rows, Mar 2025 – Jun 2026. Filter now normalised via UPPER().
 const SC_PROJECT = 'commanding-air-450109-p0';
 const SC_DS = 'searchconsole';
-const SC_URL_UNION  = `\`${SC_PROJECT}.${SC_DS}.searchdata_url_impression\``;
+const SC_URL_UNION  = `(
+  SELECT data_date, url, query, is_anonymized_query, search_type, impressions, clicks, sum_position
+  FROM \`${SC_PROJECT}.${SC_DS}.gsc_backfill_url\`
+  WHERE data_date < '2026-07-03'
+  UNION ALL
+  SELECT data_date, url, query, is_anonymized_query, search_type, impressions, clicks, sum_position
+  FROM \`${SC_PROJECT}.${SC_DS}.searchdata_url_impression\`
+  WHERE data_date >= '2026-07-03'
+)`;
 const SC_SQL = {
 
   trend: `
@@ -928,8 +938,8 @@ const SC_SQL = {
       SAFE_DIVIDE(SUM(clicks),SUM(impressions))*100 AS ctr,
       SAFE_DIVIDE(SUM(sum_position),SUM(impressions))+1 AS avg_position
     FROM ${SC_URL_UNION}
-    WHERE data_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
-      AND search_type = 'web'
+    WHERE data_date >= '2025-03-10'
+      AND UPPER(search_type) = 'WEB'
       AND LOWER(url) LIKE '%/ercol%'
     GROUP BY 1 ORDER BY 1`,
 
@@ -941,7 +951,7 @@ const SC_SQL = {
       SAFE_DIVIDE(SUM(sum_position),SUM(impressions))+1 AS avg_position
     FROM ${SC_URL_UNION}
     WHERE data_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
-      AND search_type = 'web'
+      AND UPPER(search_type) = 'WEB'
       AND LOWER(url) LIKE '%/ercol%'
       AND is_anonymized_query = FALSE
     GROUP BY 1
@@ -957,7 +967,7 @@ const SC_SQL = {
       SAFE_DIVIDE(SUM(sum_position),SUM(impressions))+1 AS avg_position
     FROM ${SC_URL_UNION}
     WHERE data_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
-      AND search_type = 'web'
+      AND UPPER(search_type) = 'WEB'
       AND LOWER(url) LIKE '%/ercol%'
     GROUP BY 1
     HAVING impressions >= 5
@@ -971,7 +981,7 @@ const SC_SQL = {
       SAFE_DIVIDE(SUM(sum_position),SUM(impressions))+1 AS avg_position
     FROM ${SC_URL_UNION}
     WHERE data_date >= '2026-03-25'
-      AND search_type = 'web'
+      AND UPPER(search_type) = 'WEB'
       AND LOWER(url) LIKE '%/ercol%'
       AND is_anonymized_query = FALSE
     GROUP BY 1
