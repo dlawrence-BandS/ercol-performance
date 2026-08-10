@@ -37,6 +37,11 @@
       "date": "2026-08-03",
       "products": 305,
       "variants": 305
+    },
+    {
+      "date": "2026-08-10",
+      "products": 310,
+      "variants": 310
     }
   ]
 }
