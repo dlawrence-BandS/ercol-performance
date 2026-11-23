@@ -112,6 +112,11 @@
       "date": "2026-11-16",
       "products": 250,
       "variants": 250
+    },
+    {
+      "date": "2026-11-23",
+      "products": 250,
+      "variants": 250
     }
   ]
 }
